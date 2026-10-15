@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "时区切换器 · Timezone Switcher",
-  "version": "1.0.0",
-  "description": "自动将网页使用的时区切换到指定地区，支持夏令时、重启恢复和生效检测。",
+  "version": "1.1.0",
+  "description": "按域名规则自动切换网页时区，未命中时不主动设置，支持夏令时、重启恢复和生效检测。",
   "minimum_chrome_version": "125",
   "permissions": ["debugger", "storage", "tabs", "alarms"],
   "background": { "service_worker": "background.js", "type": "module" },
+  "options_ui": { "page": "rules.html", "open_in_tab": true },
   "action": {
     "default_title": "时区切换器",
     "default_popup": "popup.html",

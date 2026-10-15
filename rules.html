@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>域名规则 - 时区切换器</title><link rel="stylesheet" href="rules.css"></head>
+<body><main>
+  <header><img src="icons/clock.svg" width="46" height="46" alt=""><div><p class="eyebrow">TIMEZONE SWITCHER / 1.1</p><h1>域名与时区规则</h1></div><span id="saveState" class="badge">加载中</span></header>
+  <section class="hero"><h2>只在域名命中时主动切换</h2><p>从上到下，使用第一条启用且匹配的规则。默认没有规则；未命中时不建立调试连接，并清除本插件此前设置的覆盖。</p><p class="limitation">原生模拟按渲染进程生效，共享该进程的其他页面仍可能受影响。规则针对顶层网页域名，关联 iframe / Worker 跟随该网页。</p></section>
+  <section class="panel"><div class="section-head"><div><h2>规则列表</h2><p>只填写域名或字段，不填写协议、端口、路径或通配符。规则修改后需要保存。</p></div><button id="addRule" disabled>添加规则</button></div><div id="rules"></div><div class="save-bar"><span id="ruleCount">0 条规则</span><button id="save" class="primary" disabled>保存并应用规则</button></div><p id="error" class="message error" role="alert" hidden></p><p id="notice" class="message notice" role="status" hidden></p></section>
+  <section class="panel"><h2>试一下是否命中</h2><p>使用当前编辑中的规则进行本地预览，不会访问网站或修改网页。</p><div class="tester"><label class="sr-only" for="testHost">域名或网址</label><input id="testHost" placeholder="输入域名或完整网址，例如 www.amazon.com"><button id="testRule">测试匹配</button></div><p id="testResult" role="status">只检查域名；网址路径、查询参数和端口不会参与匹配。</p></section>
+  <section class="examples"><article><h3>精确域名</h3><p><code>shop.example.com</code> 只匹配这个域名，不匹配其子域。</p></article><article><h3>域名及子域</h3><p><code>example.com</code> 匹配自身和 <code>shop.example.com</code>，不会匹配 <code>badexample.com</code>。</p></article><article><h3>包含字段</h3><p><code>amazon</code> 匹配包含该字段的所有域名，包括 <code>notamazon.example</code>，请留意范围。</p></article></section>
+  <footer>关闭规则或删除规则后，相关网页会自动清除本插件设置。已缓存的时间可能需要刷新；刷新前请保存编辑内容。</footer>
+</main><datalist id="timeZones"></datalist><script type="module" src="rules.js"></script></body></html>

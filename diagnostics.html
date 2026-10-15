@@ -1,19 +1,14 @@
 <!doctype html>
-<html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>时区检测与帮助</title><link rel="stylesheet" href="diagnostics.css"></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>时区检测与帮助</title><link rel="stylesheet" href="diagnostics.css"></head>
 <body><main>
-  <header><img src="icons/clock.svg" width="48" height="48" alt=""><div><p class="eyebrow">TIMEZONE SWITCHER / 1.0</p><h1>时区检测与帮助</h1></div><span id="globalStatus" class="badge">连接中</span></header>
-  <section class="hero"><div><p class="eyebrow">TARGET TIME ZONE</p><h2 id="targetZone">—</h2><p>从网页的 JavaScript 环境读取实际值，确认当前设置是否生效。</p></div><strong id="targetClock">--:--:--</strong></section>
-  <section class="panel"><h2>检测网页</h2><div class="toolbar"><label class="sr-only" for="tabSelect">选择需要检测的网页</label><select id="tabSelect"></select><button id="refreshTabs">刷新列表</button><button id="probe" class="primary">检测</button></div>
-    <p id="detail" role="status">请选择一个普通网页。</p>
-    <div class="metrics"><div><span>实际时区</span><strong id="actualZone">—</strong></div><div><span>网页本地时间</span><strong id="actualTime">—</strong></div><div><span>当前 UTC 偏移</span><strong id="actualOffset">—</strong></div></div>
-    <dl><div><dt>Date.toString()</dt><dd id="dateString">—</dd></div><div><dt>2026 年 1 月 / 7 月偏移</dt><dd id="seasonOffsets">—</dd></div></dl>
-    <div class="actions"><button id="retry">重新应用到此页</button><button id="reload">应用并刷新此页</button><button id="retryAll">重新应用到所有网页</button></div>
-    <p id="warnings" class="warning" hidden></p><p id="error" class="warning" role="alert" hidden></p>
-    <details><summary>查看原始检测结果</summary><pre id="raw">暂无结果</pre></details>
-  </section>
-  <section class="help-grid"><article class="panel"><h2>如何使用</h2><ol><li>点击 Chrome 工具栏的拼图图标，将本插件固定到工具栏。</li><li>在插件弹窗中搜索城市或地区，选择时区并保存。</li><li>保持“自动切换”开启，现有网页和新打开的网页会自动应用。</li><li>网页如缓存了旧时间，请先保存编辑内容，再点击“应用并刷新此页”。</li><li>关闭插件内开关即可恢复系统时区。</li></ol></article>
-  <article class="panel"><h2>状态与范围</h2><ul><li>默认启用，默认时区为 Asia/Shanghai；设置保存在本机，重启后继续使用。</li><li>Chrome 的调试提示条由浏览器显示。关闭提示条或打开开发者工具可能断开连接，需要手动重新应用。</li><li>支持普通 HTTP / HTTPS 页面。Chrome 内部页、扩展页、商店页面和休眠标签会跳过；休眠标签唤醒后再处理。</li><li>跨进程 iframe 会自动连接。Worker 在支持的目标上设置覆盖，其他目标会检查继承的时区；未确认覆盖会显示警告。</li></ul></article></section>
-  <section class="panel notes"><h2>检测结果应该如何理解</h2><p>偏移以 UTC 为基准，例如上海是 UTC+08:00。1 月和 7 月偏移不同通常意味着该地区使用夏令时，插件交给浏览器原生时区规则处理。</p><p>修改时区不会改变时间戳、系统时钟、IP、定位或账号里的时区设置。网页显式指定某个时区、固定输出 UTC 或由服务器生成时间时，显示内容可能保持原样。</p><p>插件与网页启动之间存在时序窗口，无法保证首次访问时赶在每一段网页脚本之前。已启动的 Service Worker / Shared Worker 是否可被关联取决于 Chrome 的目标关系，不能保证所有后台环境都覆盖。</p><p>扩展不上传浏览数据，不请求外部服务。为自动管理标签页，使用 debugger、storage、tabs 和 alarms 权限。实际调试状态仅存于当前浏览器会话。</p></section>
-  <footer>时区由你选择，日期规则由浏览器处理。 / Chrome 125+</footer>
+  <header><img src="icons/clock.svg" width="48" height="48" alt=""><div><p class="eyebrow">TIMEZONE SWITCHER / 1.1</p><h1>时区检测与帮助</h1></div><span id="globalStatus" class="badge">连接中</span></header>
+  <section class="hero"><div><p class="eyebrow">MATCHED RULE / TIME ZONE</p><h2 id="targetZone">—</h2><p id="ruleInfo">选择网页查看匹配结果。</p></div><strong id="targetClock">--:--:--</strong></section>
+  <section class="panel"><h2>检测网页</h2><div class="toolbar"><label class="sr-only" for="tabSelect">选择需要检测的网页</label><select id="tabSelect"></select><button id="refreshTabs">刷新列表</button><button id="probe" class="primary">检测</button></div><p id="detail" role="status">请选择普通网页。</p>
+  <div class="metrics"><div><span>实际时区</span><strong id="actualZone">—</strong></div><div><span>网页本地时间</span><strong id="actualTime">—</strong></div><div><span>当前 UTC 偏移</span><strong id="actualOffset">—</strong></div></div>
+  <dl><div><dt>Date.toString()</dt><dd id="dateString">—</dd></div><div><dt>2026 年 1 月 / 7 月偏移</dt><dd id="seasonOffsets">—</dd></div></dl>
+  <div class="actions"><button id="retry">重新应用到此页</button><button id="reload">应用并刷新此页</button><button id="retryAll">重新应用所有命中网页</button><button id="manageRules">管理域名规则</button></div><p id="warnings" class="warning" hidden></p><p id="error" class="warning" role="alert" hidden></p><details><summary>查看原始检测结果</summary><pre id="raw">暂无结果</pre></details></section>
+  <section class="help-grid"><article class="panel"><h2>如何设置规则</h2><ol><li>打开插件弹窗，点击“管理域名规则”。</li><li>添加规则，选择匹配方式、域名或字段以及对应时区。</li><li>从上到下使用第一条启用的匹配规则；可上移、下移、停用或删除。</li><li>点击“保存并应用规则”，保持域名规则开关开启。</li><li>未命中时不建立调试连接；之前由本插件设置的覆盖会清除。</li></ol></article>
+  <article class="panel"><h2>规则匹配范围</h2><ul><li>只匹配顶层网页的 hostname，不含协议、端口、路径和查询参数。</li><li>“域名及子域”按点边界判断，example.com 不会匹配 badexample.com。</li><li>“包含字段”按域名子串匹配，例如 amazon 也会命中 notamazon.example。</li><li>关联 iframe / Worker 跟随顶层网页的规则，不单独按各自域名匹配。</li><li>默认没有规则；旧版全局时区不会自动转换为全站规则。</li></ul></article></section>
+  <section class="panel notes"><h2>原生模拟的边界</h2><p>Chrome 的时区模拟可能影响整个渲染进程，共享该进程的其他页面也可能变化。因此，未命中表示“插件不主动设置”，不能保证底层时区绝不受其他页面影响。同进程的不同规则也可能冲突；出现“待确认”时请检查实际值。</p><p>支持普通 HTTP / HTTPS 网页。Chrome 内部页、扩展页、商店、本地文件页和休眠标签会跳过。关闭调试提示条或打开 DevTools 可能终止连接，需要手动重新应用。</p><p>修改时区不会改变系统时钟、时间戳、IP、定位或账号设置。显式时区、服务器输出、固定 UTC 或缓存内容可能保持原样；刷新前请保存编辑内容。</p><p>首次脚本与自动连接存在时序窗口；已运行的 Service Worker / Shared Worker 是否关联取决于 Chrome，不能保证所有后台环境覆盖。</p><p>规则和开关保存在本机，不上传浏览数据。使用 debugger、storage、tabs、alarms 权限管理命中网页；运行状态仅保存在会话内。</p></section>
+  <footer>按域名规则选择时区。 / Chrome 125+ / 1.1.0</footer>
 </main><script type="module" src="diagnostics.js"></script></body></html>

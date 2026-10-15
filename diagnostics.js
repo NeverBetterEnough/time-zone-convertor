@@ -16,14 +16,15 @@ function offsetLabel(minutes) {
 }
 
 function clock() {
-  if (!lastStatus) return;
-  $("targetClock").textContent = new Intl.DateTimeFormat("en-GB", { timeZone:lastStatus.settings.timeZone, hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false }).format(new Date());
+  const timeZone = lastStatus?.current?.rule?.timeZone;
+  $("targetClock").textContent = timeZone ? new Intl.DateTimeFormat("en-GB", { timeZone, hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false }).format(new Date()) : "--:--:--";
 }
 
 function render(data) {
   lastStatus = data;
-  $("targetZone").textContent = data.settings.timeZone;
-  $("globalStatus").textContent = data.settings.enabled ? "自动切换已开启" : "已关闭 · 系统时区";
+  $("targetZone").textContent = data.current?.rule?.timeZone || "未命中：不主动设置";
+  $("ruleInfo").textContent = data.current?.rule ? `命中 ${data.current.rule.pattern} · ${data.current.hostname}` : "选择普通网页查看规则命中情况；未命中时不连接网页读取时区。";
+  $("globalStatus").textContent = data.settings.enabled ? "域名规则已开启" : "规则已关闭";
   const current = data.current;
   const observed = current?.observed;
   $("detail").textContent = current?.verified ? "✓ 当前网页的原生时区检测通过。" : current?.detail || "暂无可检测的普通网页。";
@@ -68,5 +69,6 @@ $("probe").addEventListener("click", () => act(inspect));
 $("retry").addEventListener("click", () => act(async () => render(await request({ type:"reapply" }))));
 $("retryAll").addEventListener("click", () => act(async () => render(await request({ type:"reapply", all:true }))));
 $("reload").addEventListener("click", () => act(async () => { await request({ type:"reloadCurrent" }); await inspect(); }));
+$("manageRules").addEventListener("click", () => act(() => request({ type:"openRules" })));
 await act(refreshTabs);
 setInterval(clock, 1000);
