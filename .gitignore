@@ -1,0 +1,17 @@
+node_modules/
+test-results/
+playwright-report/
+coverage/
+.cache/
+.env
+.env.*
+!.env.example
+*.log
+*.zip
+*.crx
+*.pem
+*.key
+*.pfx
+*.p12
+.DS_Store
+Thumbs.db

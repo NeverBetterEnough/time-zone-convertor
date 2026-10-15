@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>时区切换器</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header class="brand"><img src="icons/clock.svg" width="40" height="40" alt=""><div><h1>时区切换器</h1><p>让网页时间，跟随你的选择</p></div><span class="version">1.0</span></header>
+    <section class="power-panel">
+      <div><span id="powerLabel" class="power-label">正在连接…</span><p id="powerDescription">自动应用到普通网页</p></div>
+      <label class="switch"><input id="enabled" type="checkbox" role="switch" aria-label="启用时区切换" disabled><span></span></label>
+    </section>
+    <section class="settings-panel">
+      <label class="field-label" for="zoneSearch">目标时区 <span>按城市或地区搜索</span></label>
+      <input id="zoneSearch" type="search" placeholder="搜索：纽约 / Tokyo / Europe" autocomplete="off">
+      <label class="sr-only" for="timeZone">选择时区</label>
+      <select id="timeZone" aria-describedby="zoneCount" disabled></select>
+      <div class="zone-meta"><span id="zoneCount"></span><span>自动处理夏令时</span></div>
+      <div class="preview"><span id="previewDate">目标地区当前时间</span><strong id="previewTime">--:--:--</strong><span id="previewOffset">—</span></div>
+      <button id="save" class="primary" disabled>保存并应用到所有网页</button>
+    </section>
+    <section class="status-panel" aria-live="polite">
+      <div class="section-title"><h2>当前标签页</h2><span id="statusBadge" class="pill">检测中</span></div>
+      <p id="statusDetail">正在读取状态…</p>
+      <dl id="observed" hidden><div><dt>网页报告时区</dt><dd id="observedZone"></dd></div><div><dt>网页本地时间</dt><dd id="observedTime"></dd></div></dl>
+      <p id="childWarning" class="warning" hidden></p>
+      <div class="button-row"><button id="reapply" disabled>重新应用</button><button id="reload" disabled>应用并刷新此页</button></div>
+    </section>
+    <p id="error" class="error" role="alert" hidden></p>
+    <p id="notice" class="notice" role="status" hidden></p>
+    <footer><span id="summary">—</span><button id="diagnostics" class="text-button">检测与帮助 ↗</button></footer>
+    <p class="footnote">启用时 Chrome 会显示调试提示条。关闭提示条后，可在这里重新应用。刷新会重新加载网页，请先保存编辑内容。</p>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

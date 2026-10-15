@@ -1,0 +1,20 @@
+{
+  "name": "chrome-timezone-switcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome MV3 timezone override extension; no build required.",
+  "license": "MIT",
+  "author": "NeverBetterEnough",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeverBetterEnough/time-zone-convertor.git"
+  },
+  "homepage": "https://github.com/NeverBetterEnough/time-zone-convertor#readme",
+  "bugs": { "url": "https://github.com/NeverBetterEnough/time-zone-convertor/issues" },
+  "scripts": {
+    "test": "node --test tests/core.test.js tests/background.test.js",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "devDependencies": { "playwright": "^1.64.1" }
+}
