@@ -23,7 +23,7 @@ function fakeChrome(seed = {}) {
     async set(value) { Object.assign(data[area], structuredClone(value)); }
   });
   const alarms = new Map();
-  const faults = { attach:null, detach:null };
+  const faults = { attach:null, detach:null, notice:false };
   const api = {
     storage: { local:storage("local"), session:storage("session") },
     runtime: { id:"test-id", getURL:p => `chrome-extension://test-id/${p}`, onMessage:new Event(), onInstalled:new Event(), onStartup:new Event() },
@@ -55,7 +55,10 @@ function fakeChrome(seed = {}) {
         log.push([method, target.tabId, params]);
         if (!attached.has(target.tabId)) throw new Error("Debugger is not attached");
         if (method === "Emulation.setTimezoneOverride") zones.set(target.tabId, params.timezoneId || "UTC");
-        if (method === "Runtime.evaluate") return { result:{ value:{ timeZone:zones.get(target.tabId) || "UTC", offset:0 } } };
+        if (method === "Runtime.evaluate") {
+          if (faults.notice && params.expression.includes("showTimezoneToast")) throw new Error("Notice unavailable");
+          return { result:{ value:{ timeZone:zones.get(target.tabId) || "UTC", offset:0 } } };
+        }
         return {};
       }
     }
@@ -280,4 +283,28 @@ test("user cancellation stays paused after leaving and returning to a matching d
   result = await mock.send({type:"getStatus",tabId:1});
   assert.equal(result.data.current.status,"paused");
   assert.equal(mock.attached.has(1),false);
+});
+
+test("feedback errors never detach or undo a successful native timezone", async () => {
+  const mock = await start();
+  mock.faults.notice = true;
+  const result = await mock.send({type:"updateSettings",rules:rulesFor("America/New_York"),tabId:1});
+  assert.equal(result.ok,true);
+  assert.equal(result.data.current.status,"active");
+  assert.equal(result.data.current.verified,true);
+  assert.equal(mock.zones.get(1),"America/New_York");
+  assert.equal(mock.attached.has(1),true);
+  assert.equal(mock.log.some(item => item[0] === "detach"),false);
+});
+
+test("feedback is sent only to matching roots and is cleared before detach", async () => {
+  const mock = await start({local:{settings:{enabled:true,rules:[]}}});
+  assert.equal(mock.log.some(item => item[0] === "Runtime.evaluate"),false);
+  await mock.send({type:"updateSettings",rules:[{...rulesFor()[0],type:"exact",pattern:"example.com"}]});
+  const notices = mock.log.filter(item => item[0] === "Runtime.evaluate" && item[2].expression.includes("showTimezoneToast"));
+  assert.deepEqual(notices.map(item => item[1]),[1]);
+  await mock.send({type:"updateSettings",enabled:false});
+  const clear = mock.log.findIndex(item => item[0] === "Runtime.evaluate" && item[2].expression.includes("clearTimezoneToast"));
+  const detach = mock.log.findIndex(item => item[0] === "detach");
+  assert.ok(clear >= 0 && clear < detach);
 });

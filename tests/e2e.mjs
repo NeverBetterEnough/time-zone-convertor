@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { toastExpression } from "../toast.js";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -22,6 +23,7 @@ const server = createServer((req, res) => {
   else if (req.url === "/service.js") { res.setHeader("Content-Type", "text/javascript"); res.end(serviceSource); }
   else if (req.url === "/nested.js") { res.setHeader("Content-Type", "text/javascript"); res.end(`const nested=new Worker('/worker.js');onmessage=()=>{nested.onmessage=e=>postMessage(e.data);nested.postMessage('probe')}`); }
   else {
+    if (req.url === "/strict") res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'none'; script-src 'none'");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     const frame = req.url === "/frame";
     res.end(`<!doctype html><html><head><meta charset="utf-8"><title>${frame ? "跨域子页面" : "时区测试网页"}</title></head><body><h1>${frame ? "Cross-origin iframe" : "Timezone test fixture"}</h1><script>window.initialZone=Intl.DateTimeFormat().resolvedOptions().timeZone;</script>${frame ? "" : `<iframe src="http://localhost:${port}/frame"></iframe>`}</body></html>`);
@@ -48,12 +50,17 @@ async function eventually(job, expected, timeout = 12000) {
 try {
   const options = {
     channel:"chromium", headless:true, viewport:{ width:1120, height:900 },
-    args:[`--disable-extensions-except=${root}`, `--load-extension=${root}`, "--site-per-process", "--no-first-run", "--host-resolver-rules=MAP *.test 127.0.0.1", "--no-proxy-server"]
+    args:[`--disable-extensions-except=${root}`, `--load-extension=${root}`, "--silent-debugger-extension-api", "--site-per-process", "--no-first-run", "--host-resolver-rules=MAP *.test 127.0.0.1", "--no-proxy-server"]
   };
   if (process.env.CHROMIUM_PATH) options.executablePath = process.env.CHROMIUM_PATH;
   context = await chromium.launchPersistentContext(profile, options);
   context.setDefaultTimeout(15000);
   evidence.browser = context.browser()?.version();
+  const versionPage = await context.newPage();
+  await versionPage.goto("chrome://version");
+  assert.match(await versionPage.locator("#command_line").textContent(),/--silent-debugger-extension-api/);
+  await versionPage.close();
+  check("isolated browser starts with the optional quiet debugger argument");
   let worker = context.serviceWorkers()[0];
   if (!worker) worker = await context.waitForEvent("serviceworker");
   const extensionId = new URL(worker.url()).host;
@@ -73,13 +80,51 @@ try {
   await eventually(zone, baseline);
   let status = await send({type:"getStatus",tabId});
   assert.equal(status.current.status,"unmatched"); assert.equal(status.current.attached,false);
+  const toast = page.locator("[data-timezone-switcher-toast]");
+  assert.equal(await toast.count(),0);
+  assert.equal(await page.evaluate(toastExpression("Asia/Tokyo")),false);
+  assert.equal(await toast.count(),0);
   check("empty initial rules do not attach or change a webpage timezone");
   await send({ type:"updateSettings", rules:mainRules("Asia/Shanghai"), tabId });
   await eventually(zone, "Asia/Shanghai");
   check("only a matching hostname activates native timezone emulation");
+  await toast.waitFor({state:"visible"});
+  assert.match(await toast.getByRole("status").textContent(),/已切换至 Asia\/Shanghai/);
+  await page.screenshot({path:path.join(results,"toast.png")});
+  await toast.waitFor({state:"detached",timeout:4500});
+  assert.equal(await zone(),"Asia/Shanghai");
+  status = await send({type:"getStatus",tabId});
+  assert.equal(status.current.attached,true);
+  assert.equal(status.current.verified,true);
+  check("success notice dismisses after 2.5 seconds while native timezone stays active");
+  await page.evaluate(() => {
+    window.noticeCount = 0;
+    new MutationObserver(records => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node.nodeType === 1 && node.hasAttribute("data-timezone-switcher-toast")) window.noticeCount++;
+      }
+    }).observe(document.documentElement,{childList:true});
+  });
+  await send({type:"reapply",tabId});
+  await send({type:"updateSettings",rules:mainRules("Asia/Shanghai"),tabId});
+  assert.equal(await toast.count(),0);
+  assert.equal(await page.evaluate(() => window.noticeCount),0);
+  check("reapplying unchanged settings does not repeat or extend the notice");
+
+  await page.goto(`${url}strict`);
+  await toast.waitFor({state:"visible"});
+  assert.match(await toast.getByRole("status").textContent(),/Asia\/Shanghai/);
+  await toast.waitFor({state:"detached",timeout:4500});
+  assert.equal(await zone(),"Asia/Shanghai");
+  check("a new document receives one short notice even under restrictive page CSP");
+  await page.goto(url);
 
   await send({ type:"updateSettings", rules:mainRules("America/New_York"), tabId });
   await eventually(zone, "America/New_York");
+  await toast.waitFor({state:"visible"});
+  assert.match(await toast.getByRole("status").textContent(),/America\/New_York/);
+  assert.equal(await toast.count(),1);
+  check("changing timezone replaces the notice with the new verified timezone");
   const observed = await page.evaluate(() => ({ jan:new Date("2026-01-15T12:00:00Z").getTimezoneOffset(), jul:new Date("2026-07-15T12:00:00Z").getTimezoneOffset(), now:Date.now() }));
   assert.equal(observed.jan, 300); assert.equal(observed.jul, 240); assert.ok(Math.abs(observed.now - Date.now()) < 2500);
   check("New York uses native winter/summer offsets; timestamp is unchanged");
@@ -167,10 +212,12 @@ try {
   await eventually(zone,baseline);
   status = await send({type:"getStatus",tabId});
   assert.equal(status.current.status,"unmatched"); assert.equal(status.current.attached,false);
+  assert.equal(await toast.count(),0);
   check("navigating from matched to unmatched clears the plugin override and detaches");
   await page.goto(`${url}?back-to-matched`);
   await eventually(zone,"Asia/Katmandu");
   await send({ type:"updateSettings", enabled:false, tabId });
+  assert.equal(await toast.count(),0);
   await eventually(zone, baseline);
   await eventually(() => page2.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone), baseline);
   status = await send({ type:"getStatus", tabId });

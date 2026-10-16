@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, ALARM_NAME, normalizeTimeZone, normalizeRules, loadSettings, findRule, hostnameFromUrl, ruleLabel, supportsTab, errorText, isGone, friendlyError, PROBE_EXPRESSION } from "./core.js";
+import { toastExpression, CLEAR_TOAST_EXPRESSION } from "./toast.js";
 
 let settings = { ...DEFAULT_SETTINGS };
 const owned = new Set();
@@ -90,6 +91,9 @@ async function applyChildTimeZone(target, record, timeZone) {
 
 async function releaseTab(tabId) {
   if (!owned.has(tabId)) return;
+  try {
+    await command({ tabId }, "Runtime.evaluate", { expression:CLEAR_TOAST_EXPRESSION, timeout:1000 });
+  } catch { /* Feedback must never prevent timezone cleanup. */ }
   // Clear while still attached; also clear child frame overrides before detach.
   for (const target of childTargets(tabId)) {
     try { await command(target, "Emulation.setTimezoneOverride", { timezoneId: "" }); } catch { /* closed or unsupported worker */ }
@@ -136,6 +140,7 @@ async function applyTab(tab) {
     return;
   }
   try {
+    let newlyAttached = false;
     if (owned.has(tabId)) {
       try { await command({ tabId }, "Emulation.setTimezoneOverride", { timezoneId: rule.timeZone }); }
       catch (error) {
@@ -148,6 +153,7 @@ async function applyTab(tab) {
     if (!owned.has(tabId)) {
       await chrome.debugger.attach({ tabId }, "1.3");
       owned.add(tabId);
+      newlyAttached = true;
       await command({ tabId }, "Emulation.setTimezoneOverride", { timezoneId: rule.timeZone });
     }
     if (!configuredRoots.has(tabId)) {
@@ -159,6 +165,11 @@ async function applyTab(tab) {
       if (child) await applyChildTimeZone(target, child, rule.timeZone);
     }
     await setState(tabId, "active", `已应用：${ruleLabel(rule)}`, { timeZone: rule.timeZone, ruleId: rule.id });
+    try {
+      await command({ tabId }, "Runtime.evaluate", {
+        expression:toastExpression(rule.timeZone, newlyAttached), timeout:1000
+      });
+    } catch { /* A notice failure must not undo the native timezone override. */ }
   } catch (error) {
     // Do not leave a debugger attached after partial setup failed.
     if (owned.has(tabId)) await releaseTab(tabId);

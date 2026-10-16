@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>时区检测与帮助</title><link rel="stylesheet" href="diagnostics.css"></head>
 <body><main>
-  <header><img src="icons/clock.svg" width="48" height="48" alt=""><div><p class="eyebrow">TIMEZONE SWITCHER / 1.1</p><h1>时区检测与帮助</h1></div><span id="globalStatus" class="badge">连接中</span></header>
+  <header><img src="icons/clock.svg" width="48" height="48" alt=""><div><p class="eyebrow">TIMEZONE SWITCHER / 1.2</p><h1>时区检测与帮助</h1></div><span id="globalStatus" class="badge">连接中</span></header>
   <section class="hero"><div><p class="eyebrow">MATCHED RULE / TIME ZONE</p><h2 id="targetZone">—</h2><p id="ruleInfo">选择网页查看匹配结果。</p></div><strong id="targetClock">--:--:--</strong></section>
   <section class="panel"><h2>检测网页</h2><div class="toolbar"><label class="sr-only" for="tabSelect">选择需要检测的网页</label><select id="tabSelect"></select><button id="refreshTabs">刷新列表</button><button id="probe" class="primary">检测</button></div><p id="detail" role="status">请选择普通网页。</p>
   <div class="metrics"><div><span>实际时区</span><strong id="actualZone">—</strong></div><div><span>网页本地时间</span><strong id="actualTime">—</strong></div><div><span>当前 UTC 偏移</span><strong id="actualOffset">—</strong></div></div>
@@ -10,5 +10,6 @@
   <section class="help-grid"><article class="panel"><h2>如何设置规则</h2><ol><li>打开插件弹窗，点击“管理域名规则”。</li><li>添加规则，选择匹配方式、域名或字段以及对应时区。</li><li>从上到下使用第一条启用的匹配规则；可上移、下移、停用或删除。</li><li>点击“保存并应用规则”，保持域名规则开关开启。</li><li>未命中时不建立调试连接；之前由本插件设置的覆盖会清除。</li></ol></article>
   <article class="panel"><h2>规则匹配范围</h2><ul><li>只匹配顶层网页的 hostname，不含协议、端口、路径和查询参数。</li><li>“域名及子域”按点边界判断，example.com 不会匹配 badexample.com。</li><li>“包含字段”按域名子串匹配，例如 amazon 也会命中 notamazon.example。</li><li>关联 iframe / Worker 跟随顶层网页的规则，不单独按各自域名匹配。</li><li>默认没有规则；旧版全局时区不会自动转换为全站规则。</li></ul></article></section>
   <section class="panel notes"><h2>原生模拟的边界</h2><p>Chrome 的时区模拟可能影响整个渲染进程，共享该进程的其他页面也可能变化。因此，未命中表示“插件不主动设置”，不能保证底层时区绝不受其他页面影响。同进程的不同规则也可能冲突；出现“待确认”时请检查实际值。</p><p>支持普通 HTTP / HTTPS 网页。Chrome 内部页、扩展页、商店、本地文件页和休眠标签会跳过。关闭调试提示条或打开 DevTools 可能终止连接，需要手动重新应用。</p><p>修改时区不会改变系统时钟、时间戳、IP、定位或账号设置。显式时区、服务器输出、固定 UTC 或缓存内容可能保持原样；刷新前请保存编辑内容。</p><p>首次脚本与自动连接存在时序窗口；已运行的 Service Worker / Shared Worker 是否关联取决于 Chrome，不能保证所有后台环境覆盖。</p><p>规则和开关保存在本机，不上传浏览数据。使用 debugger、storage、tabs、alarms 权限管理命中网页；运行状态仅保存在会话内。</p></section>
-  <footer>按域名规则选择时区。 / Chrome 125+ / 1.1.0</footer>
+  <section class="panel notes"><h2>短暂提示与顶部提示条</h2><p>网页确认时区生效后，右上角提示会在 2.5 秒后消失；重复核对同一文档、同一时区不会反复提示。</p><p>Chrome 顶部调试提示条由浏览器控制，普通启动方式下仍会显示。Windows 用户可以自行完全退出 Chrome，再通过插件目录的 start-chrome-quiet.cmd 启动。该参数会隐藏同一 Chrome 实例中所有扩展的调试提示条。<a href="https://github.com/NeverBetterEnough/time-zone-convertor#短暂提示与-chrome-顶部提示条" target="_blank" rel="noopener noreferrer">查看使用步骤</a></p></section>
+  <footer>按域名规则选择时区。 / Chrome 125+ / 1.2.0</footer>
 </main><script type="module" src="diagnostics.js"></script></body></html>

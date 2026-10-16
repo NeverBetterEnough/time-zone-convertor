@@ -16,7 +16,7 @@
 
 A lightweight Chrome extension that applies IANA time zones to matching domains using Chrome's native timezone emulation. Rules are ordered; the first enabled match wins. Unmatched tabs are not actively overridden.
 
-> **使用前须知：**启用时 Chrome 会显示调试提示条。关闭提示条或打开 DevTools 可能终止相关连接，之后需要点击“重新应用”。插件修改网页使用的时区，不修改系统时钟、IP 或地理位置。
+> **使用前须知：**时区生效后，网页右上角显示 2.5 秒提示。普通方式启动 Chrome 时仍会显示浏览器调试提示条；Windows 用户可选择下文的启动脚本隐藏它。关闭调试提示条或打开 DevTools 可能终止相关连接。插件修改网页使用的时区，不修改系统时钟、IP 或地理位置。
 
 > **隔离限制：**Chrome 原生时区覆盖可能影响整个渲染进程。未命中表示插件不主动连接或设置，无法保证同进程的其他页面完全不受影响；同进程的不同规则也可能冲突。规则按顶层网页域名判断，关联 iframe / Worker 跟随该网页。
 
@@ -49,6 +49,7 @@ A lightweight Chrome extension that applies IANA time zones to matching domains 
 - **关闭恢复**：关闭插件内开关后，先清除覆盖，再断开调试连接。
 - **设置持久化**：在本机保存开关和目标时区，重启后继续使用。
 - **生效检测**：从当前网页读取实际时区、本地时间、UTC 偏移及冬夏偏移，显示暂停、失败和子目标警告。
+- **短暂提示**：确认时区生效后，在网页右上角提示 2.5 秒；同一文档、同一时区的重复检查不再弹出。
 
 ## 安装
 
@@ -76,7 +77,7 @@ git clone https://github.com/NeverBetterEnough/time-zone-convertor.git
 
 保留加载时使用的目录；不要直接选择 ZIP 文件或仓库的父目录。移动目录后，需要重新加载扩展。
 
-[v1.0 PDF 教程](时区切换器-使用教程.pdf) 保留作旧版与安装参考，其中的全局时区操作不适用于 v1.1；当前规则设置请以本 README 和规则页说明为准。PDF 中的本机路径请替换为实际目录。
+[v1.0 PDF 教程](时区切换器-使用教程.pdf) 保留作旧版与安装参考，其中的全局时区操作不适用于 v1.1 及以上；当前规则设置请以本 README 和规则页说明为准。PDF 中的本机路径请替换为实际目录。
 
 ## 使用
 
@@ -111,6 +112,25 @@ git clone https://github.com/NeverBetterEnough/time-zone-convertor.git
 
 浏览器可能将部分标识规范化为别名，这是正常行为。地区规则由 Chrome 内置的时区数据库处理。
 
+### 短暂提示与 Chrome 顶部提示条
+
+网页确认时区与规则一致后，右上角显示“已切换至 …”，**2.5 秒后自动移除**，不需要点击，也不会抢走焦点。换成另一个时区或加载新文档时会再次提示；同一文档、同一时区的定期核对、保存或重新应用不会反复弹出。关闭规则或离开命中域名会清理当前提示。提示失败不影响时区设置。
+
+Chrome 顶部“正在调试此浏览器”是浏览器安全提示，普通扩展没有将它改成定时提示的接口。[Chrome 官方说明](https://developer.chrome.com/docs/extensions/develop/migrate/remote-hosted-code#browserdebugger)指出，关闭提示条会终止调试连接；本项目的原生时区覆盖需要保持连接。
+
+Windows 用户如需隐藏顶部提示条，可选用项目根目录的 **`start-chrome-quiet.cmd`**：
+
+1. 更新插件后，在 `chrome://extensions` 点击重新加载。
+2. 保存网页内容，自行完全退出 Chrome；后台仍有 Chrome 进程时，也需要退出。脚本检测到 Chrome 正在运行会停止，不会关闭任何进程。
+3. 双击 `start-chrome-quiet.cmd`，用它启动 Chrome，然后打开命中规则的网页。
+4. 页面只显示短暂的插件提示；原生时区仍保持生效。后续需要这种效果时，继续从该脚本启动。
+
+脚本仅查找 Chrome 的标准安装目录，使用原有默认浏览器配置，不会自动安装或加载扩展、不改快捷方式或注册表。Chrome 安装在自定义目录时，可在自己的 Chrome 快捷方式目标末尾添加 ` --silent-debugger-extension-api`，同样需要完全退出后重新启动。
+
+**该启动参数会隐藏同一 Chrome 实例中所有扩展的调试提示条，作用范围不限于本插件。**请了解这一点后再使用；回到普通启动方式即可恢复浏览器原有提示。参数来自 [Chromium 实现](https://github.com/chromium/chromium/blob/main/chrome/browser/extensions/api/debugger/debugger_api.cc)，属于浏览器启动选项，未来版本或管理策略可能改变它的行为。
+
+开发者可执行 `cmd /c start-chrome-quiet.cmd --dry-run` 检查启动路径和参数，此模式不会启动 Chrome。
+
 ### 各个按钮的作用
 
 | 操作 | 行为 |
@@ -143,7 +163,7 @@ git clone https://github.com/NeverBetterEnough/time-zone-convertor.git
 
 ### 常见问题
 
-**为什么出现“正在调试此浏览器”的提示？** 这是 `chrome.debugger` 的浏览器提示。插件通过该接口使用 Chrome 原生时区模拟；关闭提示条会终止相关连接。
+**为什么出现“正在调试此浏览器”的提示？** 这是 `chrome.debugger` 的浏览器提示。插件通过该接口使用 Chrome 原生时区模拟；关闭提示条会终止相关连接。若需要隐藏，参见上方“短暂提示与 Chrome 顶部提示条”的可选启动方式。
 
 **关闭提示条后为什么不自动恢复？** 插件尊重主动取消，不会反复抢回暂停的标签。点击“重新应用”恢复当前命中页；保存规则或在检测页点击“重新应用所有命中网页”可批量恢复。
 
@@ -171,7 +191,7 @@ git clone https://github.com/NeverBetterEnough/time-zone-convertor.git
 
 | 权限 | 用途 |
 | --- | --- |
-| `debugger` | 设置原生时区模拟，读取检测值，管理相关 iframe / Worker |
+| `debugger` | 设置原生时区模拟，读取检测值，显示页面短暂提示，管理相关 iframe / Worker |
 | `storage` | 本机保存设置，在浏览器会话内保存连接与暂停状态 |
 | `tabs` | 识别普通网页、监听标签与导航、在检测页列出标签 |
 | `alarms` | 每分钟核对遗漏的标签；关闭且清理完成后移除闹钟 |
@@ -207,7 +227,7 @@ npm run test:e2e
 
 测试使用隔离临时浏览器配置和本地 HTTP 服务，不读取或修改日常 Chrome 配置。报告与截图生成在 `test-results/`，不会提交到 Git。
 
-单元与后台状态测试 **23 项**、Chromium 153.0.8010.12 端到端检查 **22 项**已通过；浏览器测试结果记录在生成的 `test-results/e2e-results.json` 中：
+单元与后台状态测试 **25 项**、Chromium 153.0.8010.12 端到端检查 **27 项**已通过；浏览器测试结果记录在生成的 `test-results/e2e-results.json` 中：
 
 - 按规则应用、设置验证、并发设置串行处理、用户取消后保持暂停、清理失败重试。
 - 空规则不连接、旧版安全迁移、hostname 边界、路径/参数不参与匹配、首条优先、停用/删除、过期编辑页冲突检查。
@@ -216,6 +236,9 @@ npm run test:e2e
 - 多标签切换、导航、关闭恢复、再次启用、刷新和重启恢复。
 - 命中到未命中导航、不同站点使用不同时区、规则编辑/排序/停用/删除与本地匹配预览。
 - 弹窗高度检查与从网页读取实际时区的检测界面。
+- 提示自动消失后时区继续生效、重复设置不重复提示、切换时区和新文档提示、严格 CSP 页面、提示失败不中断原生模拟。
+
+端到端测试在隔离 Chromium 中传入可选静默参数并验证时区功能；headless 测试不验证浏览器窗口顶部提示条的视觉表现。Windows 启动脚本仅执行 `--dry-run` 检查，不启动日常 Chrome。
 
 改动代码后，在 `chrome://extensions` 点击插件卡片上的重新加载按钮，再刷新需要验证的网页。
 
@@ -225,6 +248,7 @@ npm run test:e2e
 manifest.json               Manifest V3 配置
 background.js              后台连接、应用、清理与状态管理
 core.js                    时区校验、页面范围与静态检测表达式
+toast.js                   2.5 秒页面提示与同文档去重
 popup.html / .css / .js     插件弹窗
 zones.js                   时区列表与常见城市中文名称
 rules.html / .css / .js     域名规则编辑与本地匹配预览
@@ -233,6 +257,7 @@ icons/                     SVG 源图与 PNG 图标
 docs/images/               README 的真实界面截图
 tests/                     单元、后台状态与浏览器测试
 tools/create-icons.ps1     Windows 图标生成脚本
+start-chrome-quiet.cmd      可选 Chrome 启动脚本（隐藏所有扩展调试提示条）
 时区切换器-使用教程.pdf       v1.0 旧版图文教程（安装参考）
 CHANGELOG.md                版本变化与升级说明
 LICENSE                    MIT 许可证
